@@ -1,0 +1,13 @@
+{
+    "name": "daiko/php-files",
+    "description": "Library to manipulate files (copy, move, delete, compress...)",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Florestan Bredow",
+            "email": "daiko@daiko.fr"
+        }
+    ],
+    "require": {}
+}
