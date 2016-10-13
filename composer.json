@@ -9,5 +9,12 @@
             "email": "daiko@daiko.fr"
         }
     ],
-    "require": {}
+    "require": {},
+    "autoload":
+    {
+        "psr-4":
+        {
+            "Files\\": "app"
+        }
+    }
 }
