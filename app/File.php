@@ -8,94 +8,137 @@ class File
         $this->path = $path;
     }
 
+    public function __toString()
+    {
+        return $this->path;
+    }
+
     /**
      * Copy this file to destination
      * @param  [type] $destination [description]
      * @return [type]          [description]
      */
-    public function copy($destination)
+    public function copy($dest)
     {
-        // Erreur si la destination existe déjà.
-        if (is_file($destination)
-            or is_dir($destination)
-            or is_link($destination)) {
-            throw new Exception(
-                "Destination : " . $destination .  "already exist",
-                1
-            );
+        // La source n'existe pas
+        if (!file_exists($this->path)) {
+            throw new \Exception("Source don't exist : $src", 1);
         }
 
-        if (is_file($this->path)) {
-            if (!copy($this->path, $destination)) {
-                throw new Exception(
-                    "Copying error : " . $this->path . " -> "  . $destination,
-                    1
-                );
-            }
+        // En cas de copie d'un fichier dans un repertoire.
+        if (is_dir($dest) and !is_dir($this->path)) {
+            $dest .= basename($this->path);
         }
 
-        if (is_dir($this->path)) {
-            if (!mkdir($destination)) {
-                throw new Exception(
-                    "Can't create destination folder : $destination",
-                    1
-                );
-            }
-            $this->copyFolder($this->path, $destination);
+        // La destination ne doit pas exister.
+        if (file_exists($dest)) {
+            throw new \Exception("Destination already exist : $dest", 1);
         }
 
-        if (is_link($this->path)) {
-            throw new Exception("Can't copy link (for now)", 1);
-        }
-
-        throw new Exception("This is impossible.", 1);
+        $this->internalCopy($this->path, $dest);
     }
 
+    /**
+     * Delete file or folder
+     * @return [type] [description]
+     */
     public function delete()
     {
-        if (is_file($this->path)) {
-            if (!unlink($this->path)) {
-                throw new Exception("Can't delete : " . $this->path, 1);
-            }
+        if (!file_exists($this->path)) {
+            throw new \Exception("Can't delete something unexisting : $src", 1);
         }
-        if (is_dir($path)) {
-            $this->deleteFolder($path);
-        }
+
+        $this->internalDelete($this->path);
     }
 
-    public function move($destination)
+    /**
+     * Move file or folder
+     * @param  [type] $destination [description]
+     * @return [type]              [description]
+     */
+    public function move($dest)
     {
-        $this->copy($destination);
+        $this->copy($dest);
         $this->delete();
     }
 
-    private function deleteFolder($path)
+    /**
+     * [internalCopy description]
+     * @param  string $src  [description]
+     * @param  string $dest [description]
+     * @return [type]       [description]
+     */
+    private function internalCopy($src, $dest)
     {
-        $file2ignore = array('.', '..');
-        if ($res = opendir($path)) {
-            while (($file = readdir($res)) !== false) {
-                if (!in_array($file, $file2ignore)) {
-                    $this->delete($path . '/' . $file);
-                }
+        if (is_file($src)) {
+            if (!copy($src, $dest)) {
+                throw new \Exception(
+                    "Copying error : " . $src . " -> "  . $dest,
+                    1
+                );
             }
-            closedir($res);
+            return;
         }
 
-        if (!rmdir($path)) {
-            throw new Exception("Error deleting : $path", 1);
-        };
+        if (is_dir($src)) {
+            if (!mkdir($dest)) {
+                throw new \Exception(
+                    "Can't create destination folder : $dest",
+                    1
+                );
+            }
+
+            $file2ignore = array('.', '..');
+            if ($res = opendir($src)) {
+                while (($file = readdir($res)) !== false) {
+                    if (!in_array($file, $file2ignore)) {
+                        $this->internalCopy(
+                            $src . '/' . $file,
+                            $dest . '/' . $file
+                        );
+                    }
+                }
+                closedir($res);
+            }
+            return;
+        }
+
+        if (is_link($src)) {
+            // TODO
+            throw new \Exception("Can't copy link (for now)", 1);
+            return;
+        }
+
+        throw new \Exception("$src is not file, link or folder", 1);
     }
 
-    private function copyFolder($srcPath, $destination)
+    private function internalDelete($path)
     {
-        $file2ignore = array('.', '..');
-        if ($res = opendir($srcPath)) {
-            while (($file = readdir($res)) !== false) {
-                if (!in_array($file, $file2ignore)) {
-                    $this->copy($srcPath . '/' . $file, $destination . '/' . $file);
-                }
+        if (is_file($path) or is_link($path)) {
+            if (!unlink($path)) {
+                throw new \Exception("Can't delete : $path", 1);
             }
-            closedir($res);
+            return;
         }
+
+        if (is_dir($path)) {
+            $file2ignore = array('.', '..');
+            if ($res = opendir($path)) {
+                while (($file = readdir($res)) !== false) {
+                    if (!in_array($file, $file2ignore)) {
+                        $this->internalDelete($path . '/' . $file);
+                    }
+                }
+                closedir($res);
+            }
+
+            if (!rmdir($path)) {
+                throw new \Exception("Error deleting : $path", 1);
+            }
+
+            return;
+        }
+
+        throw new \Exception("$path is not file, link or folder", 1);
     }
 }
