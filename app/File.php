@@ -1,5 +1,5 @@
 <?php
-namespace PhpFiles;
+namespace Files;
 
 class File
 {

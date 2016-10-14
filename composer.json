@@ -14,7 +14,7 @@
     {
         "psr-4":
         {
-            "Files\\": "app"
+            "Files\\": "app\\"
         }
     }
 }
