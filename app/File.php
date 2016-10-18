@@ -5,7 +5,10 @@ class File
 {
     public function __construct($path)
     {
-        $this->path = $path;
+        if (!file_exists($path)) {
+            throw new Exception("Error Processing Request", 1);
+        }
+        $this->path = realpath($path);
     }
 
     public function __toString()
@@ -22,12 +25,7 @@ class File
     {
         // La source n'existe pas
         if (!file_exists($this->path)) {
-            throw new \Exception("Source don't exist : $src", 1);
-        }
-
-        // En cas de copie d'un fichier dans un repertoire.
-        if (is_dir($dest) and !is_dir($this->path)) {
-            $dest .= basename($this->path);
+            throw new \Exception("Source don't exist : " . $this->path, 1);
         }
 
         // La destination ne doit pas exister.
@@ -35,26 +33,60 @@ class File
             throw new \Exception("Destination already exist : $dest", 1);
         }
 
-        $this->internalCopy($this->path, $dest);
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator(
+                $this->path,
+                \RecursiveDirectoryIterator::SKIP_DOTS
+            ),
+            \RecursiveIteratorIterator::SELF_FIRST
+        );
+        foreach ($iterator as $path => $file) {
+            if ($file->isDir()) {
+                mkdir($dest . $iterator->getSubPathName(), 0777, true);
+                continue;
+            }
+            copy($path, $dest . $iterator->getSubPathName());
+        }
     }
 
     /**
      * Delete file or folder
-     * @return [type] [description]
      */
     public function delete()
     {
         if (!file_exists($this->path)) {
-            throw new \Exception("Can't delete something unexisting : $src", 1);
+            throw new \Exception(
+                "Can't delete something unexisting : " . $this->path,
+                1
+            );
         }
 
-        $this->internalDelete($this->path);
+        if (is_dir($this->path)){
+            $iterator = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator(
+                    $this->path,
+                    \RecursiveDirectoryIterator::SKIP_DOTS
+                ),
+                \RecursiveIteratorIterator::CHILD_FIRST
+            );
+
+            foreach ($iterator as $file) {
+                if ($file->isDir()) {
+                    rmdir($file->getPathname());
+                    continue;
+                }
+                unlink($file->getPathname());
+            }
+            rmdir($this->path);
+            return;
+        }
+
+        unlink($this->path);
     }
 
     /**
      * Move file or folder
-     * @param  [type] $destination [description]
-     * @return [type]              [description]
+     * @param  string $destination path where to copy files
      */
     public function move($dest)
     {
@@ -63,82 +95,26 @@ class File
     }
 
     /**
-     * [internalCopy description]
-     * @param  string $src  [description]
-     * @param  string $dest [description]
-     * @return [type]       [description]
+     * Recursively evaluate file/directory disk usage
+     * @return integer size in Bytes
      */
-    private function internalCopy($src, $dest)
+    public function diskUsage()
     {
-        if (is_file($src)) {
-            if (!copy($src, $dest)) {
-                throw new \Exception(
-                    "Copying error : " . $src . " -> "  . $dest,
-                    1
-                );
+        if (is_dir($this->path)) {
+            $diskUsage = 0;
+            $iterator = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator(
+                    $this->path,
+                    \RecursiveDirectoryIterator::SKIP_DOTS
+                )
+            );
+
+            foreach ($iterator as $file) {
+                $diskUsage += $file->getSize();
             }
-            return;
+            return $diskUsage;
         }
 
-        if (is_dir($src)) {
-            if (!mkdir($dest)) {
-                throw new \Exception(
-                    "Can't create destination folder : $dest",
-                    1
-                );
-            }
-
-            $file2ignore = array('.', '..');
-            if ($res = opendir($src)) {
-                while (($file = readdir($res)) !== false) {
-                    if (!in_array($file, $file2ignore)) {
-                        $this->internalCopy(
-                            $src . '/' . $file,
-                            $dest . '/' . $file
-                        );
-                    }
-                }
-                closedir($res);
-            }
-            return;
-        }
-
-        if (is_link($src)) {
-            // TODO
-            throw new \Exception("Can't copy link (for now)", 1);
-            return;
-        }
-
-        throw new \Exception("$src is not file, link or folder", 1);
-    }
-
-    private function internalDelete($path)
-    {
-        if (is_file($path) or is_link($path)) {
-            if (!unlink($path)) {
-                throw new \Exception("Can't delete : $path", 1);
-            }
-            return;
-        }
-
-        if (is_dir($path)) {
-            $file2ignore = array('.', '..');
-            if ($res = opendir($path)) {
-                while (($file = readdir($res)) !== false) {
-                    if (!in_array($file, $file2ignore)) {
-                        $this->internalDelete($path . '/' . $file);
-                    }
-                }
-                closedir($res);
-            }
-
-            if (!rmdir($path)) {
-                throw new \Exception("Error deleting : $path", 1);
-            }
-
-            return;
-        }
-
-        throw new \Exception("$path is not file, link or folder", 1);
+        return filesize($this->path);
     }
 }
