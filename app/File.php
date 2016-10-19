@@ -92,6 +92,7 @@ class File
     {
         $this->copy($dest);
         $this->delete();
+        $this->path = $dest;
     }
 
     /**
