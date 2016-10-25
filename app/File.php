@@ -23,8 +23,6 @@ class File
      */
     public function copy($dest)
     {
-        var_dump($this->path . " --> $dest");
-
         // La source n'existe pas
         if (!file_exists($this->path)) {
             throw new \Exception("Source don't exist : " . $this->path, 1);
