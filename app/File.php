@@ -23,6 +23,8 @@ class File
      */
     public function copy($dest)
     {
+        var_dump($this->path . " --> $dest");
+
         // La source n'existe pas
         if (!file_exists($this->path)) {
             throw new \Exception("Source don't exist : " . $this->path, 1);
@@ -31,6 +33,11 @@ class File
         // La destination ne doit pas exister.
         if (file_exists($dest)) {
             throw new \Exception("Destination already exist : $dest", 1);
+        }
+
+        if (is_file($this->path)) {
+            copy($this->path, $dest);
+            return;
         }
 
         $iterator = new \RecursiveIteratorIterator(
