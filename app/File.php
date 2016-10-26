@@ -49,18 +49,10 @@ class File
             new \RecursiveDirectoryIterator(
                 $this->path,
                 \RecursiveDirectoryIterator::SKIP_DOTS
-            )/**,
-            \RecursiveIteratorIterator::CHILD_FIRST**/
+            )
         );
         foreach ($iterator as $path => $file) {
-            if ($file->isDir()) {
-                $dirToCreate = $dest . $iterator->getSubPathName();
-                var_dump("Créé un dossier : $dirToCreate ");
-                mkdir($dirToCreate, 0777, true);
-                continue;
-            }
             $fileDest = $dest . $iterator->getSubPathName();
-
             if (!file_exists(dirname($fileDest))) {
                 mkdir(dirname($fileDest), 0777, true);
             }
