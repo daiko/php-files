@@ -8,7 +8,7 @@ class File
         if (!file_exists($path)) {
             throw new Exception("Error Processing Request", 1);
         }
-        $this->path = realpath($path);
+        $this->path = $path;
     }
 
     public function __toString()
@@ -23,6 +23,7 @@ class File
      */
     public function copy($dest)
     {
+
         // La source n'existe pas
         if (!file_exists($this->path)) {
             throw new \Exception("Source don't exist : " . $this->path, 1);
@@ -34,23 +35,36 @@ class File
         }
 
         if (is_file($this->path)) {
+            // Copie d'un fichier dans un dossier.
+            if (is_dir($dest)) {
+                $dest = $this->addSlash($dest) . basename($this->path);
+            }
             copy($this->path, $dest);
             return;
         }
+
+        $dest = $this->addSlash($dest);
 
         $iterator = new \RecursiveIteratorIterator(
             new \RecursiveDirectoryIterator(
                 $this->path,
                 \RecursiveDirectoryIterator::SKIP_DOTS
-            ),
-            \RecursiveIteratorIterator::SELF_FIRST
+            )/**,
+            \RecursiveIteratorIterator::CHILD_FIRST**/
         );
         foreach ($iterator as $path => $file) {
             if ($file->isDir()) {
-                mkdir($dest . $iterator->getSubPathName(), 0777, true);
+                $dirToCreate = $dest . $iterator->getSubPathName();
+                var_dump("Créé un dossier : $dirToCreate ");
+                mkdir($dirToCreate, 0777, true);
                 continue;
             }
-            copy($path, $dest . $iterator->getSubPathName());
+            $fileDest = $dest . $iterator->getSubPathName();
+
+            if (!file_exists(dirname($fileDest))) {
+                mkdir(dirname($fileDest), 0777, true);
+            }
+            copy($path, $fileDest);
         }
     }
 
@@ -122,5 +136,17 @@ class File
         }
 
         return filesize($this->path);
+    }
+
+    /**
+     * Add directory sperator at end of string if not.
+     * @param string $path
+     */
+    private function addSlash($path)
+    {
+        if (substr($path, -1) !== DIRECTORY_SEPARATOR) {
+            $path .= DIRECTORY_SEPARATOR;
+        }
+        return $path;
     }
 }
