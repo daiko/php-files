@@ -1,4 +1,5 @@
 <?php
+
 namespace Files;
 
 class File
@@ -6,7 +7,7 @@ class File
     public function __construct($path)
     {
         if (!file_exists($path)) {
-            throw new Exception("Error Processing Request", 1);
+            throw new \Exception("Error Processing Request", 1);
         }
         $this->path = $path;
     }
